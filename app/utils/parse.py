@@ -1,21 +1,24 @@
 from bs4 import BeautifulSoup
 import aiohttp
 import asyncio
+from fastapi import HTTPException
+
 
 headers = {
         'accept':'"text/html"',
         'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0'
     }
 
-async def get_page_data(session:aiohttp.ClientSession, link):
-    response = await session.get(link, headers=headers)
-    soup = BeautifulSoup(await response.text(), 'lxml')
-    title = soup.find('h1', class_='subject').string
-    author = soup.find('span', class_='userNick').string
-    id = soup.find('span', class_ = 'viewbull-bulletin-id__num').string
-    views = link['views']
-    print(title, author, views ,id)
+async def get_page_data(session,item, position):
+    async with session.get(url=item['link'].strip(), headers=headers) as response:
+        soup = BeautifulSoup(await response.text(), 'lxml')
+        title = soup.find('h1', class_='subject').text.strip()
+        author = soup.find('span', class_='userNick').text.strip()
+        id = soup.find('span', class_ = 'viewbull-bulletin-id__num').string.strip()
+        views = item['views']
+        print(title, author, views ,id, position)
     #TODO создание модели
+    #return model
 
 async def gather_data():
     url = 'https://www.farpost.ru/vladivostok/service/construction/guard/+/%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D1%8B+%D0%B2%D0%B8%D0%B4%D0%B5%D0%BE%D0%BD%D0%B0%D0%B1%D0%BB%D1%8E%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F/#center=43.172967176037695%2C131.96034531052942&zoom=11'
@@ -29,11 +32,21 @@ async def gather_data():
                 item_soup = item
                 views = item_soup.find('span', class_='views').string
                 link = item_soup.find('a', class_='bulletinLink', href=True)
+                
+                items[id+1] = {'views':views, 'link':'https://www.farpost.ru'+link['href']}
 
-                items[id] = {'views':views, 'link':'www.farpost.ru' + link['href']}
+            result = []
+            if len(items) > 0:
+                
+                for item in items:
+                    item_result = await get_page_data(session,items[item],item)
+                    result.append(item_result)
 
-            tasks = []
-            for item in items:
-                task = asyncio.create_task(get_page_data(session, item))
-                tasks.append(task)
-            await asyncio.gather(*tasks)
+            else:
+                raise HTTPException(404, 'Уткнулись в лимит запросов на сайт')
+                exit('Уткнулись в лимит запросов')
+
+    return result
+
+if __name__ == '__main__':
+    asyncio.run(gather_data())
