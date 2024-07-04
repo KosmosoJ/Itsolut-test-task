@@ -13,6 +13,7 @@ headers = {
     }
 
 async def get_page_data(session,item, position, db_session:AsyncSession):
+    """ Парсим конкретную ссылку и достаем оттуда информацию по опубликованному на сайте объявлению """
     async with session.get(url=item['link'].strip(), headers=headers) as response:
         soup = BeautifulSoup(await response.text(), 'lxml')
         title = soup.find('h1', class_='subject').text.strip()
@@ -26,6 +27,7 @@ async def get_page_data(session,item, position, db_session:AsyncSession):
     return advert
 
 async def gather_data(db_session:AsyncSession) -> list[Advert]:
+    """ Собираем объявления указанные на сайте """
     url = 'https://www.farpost.ru/vladivostok/service/construction/guard/+/%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D1%8B+%D0%B2%D0%B8%D0%B4%D0%B5%D0%BE%D0%BD%D0%B0%D0%B1%D0%BB%D1%8E%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F/#center=43.172967176037695%2C131.96034531052942&zoom=11'
     
     async with aiohttp.ClientSession() as session:
@@ -54,4 +56,5 @@ async def gather_data(db_session:AsyncSession) -> list[Advert]:
     return result
 
 if __name__ == '__main__':
+    """ Используется для запуска скрипта вне fastapi приложения """
     asyncio.run(gather_data())
