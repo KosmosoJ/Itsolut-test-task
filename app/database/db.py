@@ -1,9 +1,17 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+import os 
+from dotenv import find_dotenv,load_dotenv
 
 
-DB_PATH = 'postgresql+asyncpg://postgres:darko@localhost:5432/itsolut'
+if find_dotenv():
+    load_dotenv()
+
+if os.getenv('DB_PATH'):
+    DB_PATH = os.getenv('DB_PATH')
+else:
+    DB_PATH = 'postgresql+asyncpg://postgres:postgres@db:5432/itsolut'
 
 try:
     engine = create_async_engine(DB_PATH, echo=True)
